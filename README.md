@@ -1,7 +1,7 @@
 # ATTENBOT
 A webcam narrator in the style of a certain BBC presenter.
 
-![Logo](Project-Logo.png)
+![Project Logo](Title.png)
     
 ## Installation
 
