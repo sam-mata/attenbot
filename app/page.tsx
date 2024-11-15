@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 export default function Home() {
-  const [status, setStatus] = useState("📸 Enable Webcam");
-  const [script, setScript] = useState("No script generated.");
+  const [status, ] = useState("📸 Enable Webcam");
+  const [script, ] = useState("No script generated.");
 
 
   return (
