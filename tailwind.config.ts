@@ -12,6 +12,11 @@ export default {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        title: ["Squada One", "sans-serif"],
+        subtitle: ["Vollkorn", "serif"],
+        body: ["Roboto Mono", "sans-serif"],
+      },
     },
   },
   plugins: [],

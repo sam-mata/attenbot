@@ -1,4 +1,4 @@
-@tailwind base;
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Squada+One&family=Vollkorn:ital,wght@0,400..900;1,400..900&display=swap');@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
