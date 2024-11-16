@@ -38,7 +38,7 @@ export async function POST(request: Request) {
             try {
                 const errorData = await conversionResponse.json();
                 errorMessage = errorData.message || errorData.error || 'Unknown error';
-            } catch (e) {
+            } catch {
                 errorMessage = await conversionResponse.text();
             }
             throw new Error(`Failed to generate audio: ${errorMessage}`);
