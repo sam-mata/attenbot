@@ -49,7 +49,7 @@ export default function Home() {
       <div className="flex space-x-2 text-center bg-foreground w-fit mx-auto mb-20 px-2 text-background font-body font-bold">
         <a href="https://sammata.nz/">🤙 Contact</a>
         <p>•</p> 
-        <a href="https://github.com/sam-mata/attenbot">📦Project Files</a>
+        <a href="https://github.com/sam-mata/attenbot">📦Project</a>
         <p>•</p>
         <a href="https://x.com/charliebholtz/status/1724815159590293764">🎥 Original</a>
       </div>

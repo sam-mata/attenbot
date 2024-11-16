@@ -1,25 +1,40 @@
-// components/PWAProvider.tsx
-"use client";
+// app/PWAProvider.tsx
+'use client';
 
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 export default function PWAProvider() {
     useEffect(() => {
         if (
-            "serviceWorker" in navigator &&
-            window.location.hostname !== "localhost"
+            typeof window !== 'undefined' &&
+            'serviceWorker' in navigator &&
+            window.workbox !== undefined
         ) {
-            navigator.serviceWorker
-                .register("/sw.js")
-                .then((registration) => {
-                    console.log(
-                        "Service Worker registered with scope:",
-                        registration.scope
-                    );
-                })
-                .catch((error) => {
-                    console.error("Service Worker registration failed:", error);
-                });
+            const wb = window.workbox;
+
+            // Add event listeners to handle PWA lifecycle
+            wb.addEventListener('installed', (event: any) => {
+                console.log(`Event ${event.type} is triggered.`);
+                console.log(event);
+            });
+
+            wb.addEventListener('controlling', (event: any) => {
+                console.log(`Event ${event.type} is triggered.`);
+                console.log(event);
+            });
+
+            wb.addEventListener('activated', (event: any) => {
+                console.log(`Event ${event.type} is triggered.`);
+                console.log(event);
+            });
+
+            // Send skip waiting
+            wb.addEventListener('waiting', () => {
+                wb.messageSkipWaiting();
+            });
+
+            // Register the service worker after event listeners are added
+            wb.register();
         }
     }, []);
 
