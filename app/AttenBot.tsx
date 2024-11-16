@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 
 export default function AttenBot() {
     const [status, setStatus] = useState("Starting webcam...");
-    const [script, setScript] = useState("No script generated.");
+    const [, setScript] = useState("No script generated.");
     const [isProcessing, setIsProcessing] = useState(false);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
