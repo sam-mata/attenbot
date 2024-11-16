@@ -4,164 +4,149 @@
 import { useState, useRef, useEffect } from "react";
 
 export default function AttenBot() {
-    const [status, setStatus] = useState("📸 Enable Webcam");
+    const [status, setStatus] = useState("Starting webcam...");
     const [script, setScript] = useState("No script generated.");
     const [isProcessing, setIsProcessing] = useState(false);
-    const [isNarrating, setIsNarrating] = useState(false);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
-    const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-    const videoRef = useRef(null);
-    const streamRef = useRef(null);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
-    const startWebcam = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false,
-            });
+    // Auto-start webcam on component mount
+    useEffect(() => {
+        const startWebcam = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false,
+                });
 
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+
+                streamRef.current = stream;
+                setStatus("✅ Ready");
+            } catch (error) {
+                console.error("Error accessing webcam:", error);
+                setStatus("❌ Error accessing webcam");
             }
+        };
 
-            streamRef.current = stream;
-            setStatus("✅ Webcam Active");
-        } catch (error) {
-            console.error("Error accessing webcam:", error);
-            setStatus("❌ Error accessing webcam");
-        }
-    };
+        startWebcam();
 
-    const stopWebcam = () => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach((track) => track.stop());
-            if (videoRef.current) {
-                videoRef.current.srcObject = null;
+        // Cleanup on unmount
+        return () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
             }
-            streamRef.current = null;
-            setStatus("📸 Enable Webcam");
-        }
-    };
+        };
+    }, []);
 
     const captureImage = async () => {
         if (!videoRef.current || !streamRef.current) return null;
 
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         canvas.width = videoRef.current.videoWidth;
         canvas.height = videoRef.current.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(videoRef.current, 0, 0);
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(videoRef.current, 0, 0);
 
-        return canvas.toDataURL("image/jpeg").split(",")[1];
+        return canvas.toDataURL('image/jpeg').split(',')[1];
     };
 
-    const generateScript = async () => {
+    const generateContent = async () => {
         if (!streamRef.current) {
-            setStatus("❌ Please enable webcam first");
+            setStatus("❌ Webcam not available");
             return;
         }
 
         setIsProcessing(true);
         setStatus("🤔 Analyzing scene...");
-        setAudioUrl(null); // Clear previous audio
+        setAudioUrl(null);
 
         try {
+            // First, generate the script
             const base64Image = await captureImage();
             if (!base64Image) {
                 throw new Error("Failed to capture image");
             }
 
-            const response = await fetch("/api/generate-script", {
-                method: "POST",
+            const scriptResponse = await fetch('/api/generate-script', {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     image: base64Image,
                 }),
             });
 
-            if (!response.ok) {
+            if (!scriptResponse.ok) {
                 throw new Error("Failed to generate script");
             }
 
-            const data = await response.json();
-            setScript(data.script);
-            setStatus("✨ Script generated!");
+            const scriptData = await scriptResponse.json();
+            setScript(scriptData.script);
+            setStatus("✨ Generating narration...");
+
+            // Then, generate the narration
+            const audioResponse = await fetch('/api/generate-audio', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: scriptData.script,
+                }),
+            });
+
+            if (!audioResponse.ok) {
+                const error = await audioResponse.json();
+                throw new Error(error.error || 'Failed to generate narration');
+            }
+
+            const audioData = await audioResponse.json();
+            const audioDataUrl = `data:audio/mpeg;base64,${audioData.audio}`;
+
+            // Create and play audio immediately
+            const audio = new Audio(audioDataUrl);
+            audio.play().then(() => {
+                setStatus("🔊 Playing narration...");
+            }).catch((error) => {
+                console.error('Autoplay failed:', error);
+                setStatus("🔊 Click play to listen to narration");
+            });
+
+            // Set the URL for the visible audio control
+            setAudioUrl(audioDataUrl);
+
         } catch (error) {
-            console.error("Error generating script:", error);
-            setStatus("❌ Error generating script");
+            console.error("Error:", error);
+            setStatus(`❌ ${error instanceof Error ? error.message : 'Error generating content'}`);
         } finally {
             setIsProcessing(false);
         }
     };
 
-    const generateNarration = async () => {
-        if (!script || script === "No script generated.") {
-            setStatus("❌ Please generate a script first");
-            return;
-        }
-
-        setIsNarrating(true);
-        setIsLoadingAudio(true);
-        setStatus("🎙️ Generating narration...");
-
-        try {
-            const response = await fetch("/api/generate-audio", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    text: script,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to generate audio");
-            }
-
-            const data = await response.json();
-
-            if (data.error) {
-                throw new Error(data.error);
-            }
-
-            // Use the direct URL from PlayHT if available, otherwise use base64
-            const audioData = data.url || `data:audio/mpeg;base64,${data.audio}`;
-            setAudioUrl(audioData);
-            setStatus("🔊 Narration ready!");
-        } catch (error) {
-            console.error("Error generating audio:", error);
-            setStatus("❌ Error generating narration");
-        } finally {
-            setIsNarrating(false);
-            setIsLoadingAudio(false);
-        }
-    };
-
+    // Add use effect to handle user interaction requirement for audio
     useEffect(() => {
+        const handleUserInteraction = () => {
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+        };
+
+        document.addEventListener('click', handleUserInteraction);
+        document.addEventListener('keydown', handleUserInteraction);
+
         return () => {
-            stopWebcam();
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.src = "";
-            }
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
         };
     }, []);
 
-    const handleStartClick = () => {
-        if (!streamRef.current) {
-            startWebcam();
-        } else {
-            stopWebcam();
-        }
-    };
-
     return (
-        <div className="lg:flex py-12">
-            <div className="lg:w-1/2">
+            <div>
                 <video
                     ref={videoRef}
                     id="webcam"
@@ -171,62 +156,28 @@ export default function AttenBot() {
                 >
                     <track kind="captions" label="No captions available" default />
                 </video>
-                <div className="space-y-2">
-                    <button
-                        className="font-extrabold bg-foreground text-background px-4 my-4"
-                        onClick={handleStartClick}
-                    >
-                        {streamRef.current ? "STOP WEBCAM" : "START WEBCAM"}
-                    </button>
-                    <button
-                        className="font-extrabold bg-foreground text-background px-4 my-4 block w-full"
-                        onClick={generateScript}
-                        disabled={isProcessing || !streamRef.current}
-                    >
-                        {isProcessing ? "GENERATING..." : "GENERATE SCRIPT"}
-                    </button>
-                    <button
-                        className="font-extrabold bg-foreground text-background px-4 my-4 block w-full"
-                        onClick={generateNarration}
-                        disabled={
-                            isNarrating ||
-                            !script ||
-                            script === "No script generated." ||
-                            isLoadingAudio
-                        }
-                    >
-                        {isNarrating
-                            ? "GENERATING VOICE..."
-                            : isLoadingAudio
-                                ? "LOADING AUDIO..."
-                                : "NARRATE SCRIPT"}
-                    </button>
+                <button
+                    className="font-extrabold bg-foreground text-background px-4 py-2 mt-4 w-full"
+                    onClick={generateContent}
+                    disabled={isProcessing || !streamRef.current}
+                >
+                    {isProcessing ? "ATTENBOT IS WORKING..." : "START THE ATTENBOT"}
+                </button>
+                <div className="bg-zinc-800 rounded-sm p-4 my-4">
+                    <p>Status: {status}</p>
                 </div>
-            </div>
-
-            <div className="lg:w-1/2">
-                <div className="flex">
-                    <h2 className="font-extrabold w-2/5">Status:</h2>
-                    <h2 className="w-3/5 text-left">{status}</h2>
-                </div>
-                <p className="bg-zinc-800 m-4 text-xs h-48 p-4 overflow-y-auto text-left">
-                    {script}
-                </p>
                 {audioUrl && (
                     <div className="mt-4">
                         <audio
                             ref={audioRef}
-                            controls
-                            className="w-full"
                             src={audioUrl}
-                            onError={(e) => {
-                                console.error("Audio playback error:", e);
-                                setStatus("❌ Error playing audio");
-                            }}
+                            className="w-full"
+                            onPlay={() => setStatus("🔊 Playing narration...")}
+                            onEnded={() => setStatus("✅ Narration complete")}
+                            onError={() => setStatus("❌ Error playing audio")}
                         />
                     </div>
                 )}
             </div>
-        </div>
     );
 }
