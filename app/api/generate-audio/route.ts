@@ -1,4 +1,3 @@
-// app/api/generate-audio/route.ts
 import { NextResponse } from 'next/server';
 
 const PLAYHT_API_KEY = process.env.PLAYHT_API_KEY;
@@ -11,7 +10,6 @@ export async function POST(request: Request) {
 
         console.log('Initiating audio conversion with PlayHT v2...');
 
-        // Create the conversion using v2 API with your cloned voice
         const conversionResponse = await fetch('https://api.play.ht/api/v2/tts/stream', {
             method: 'POST',
             headers: {
@@ -22,7 +20,7 @@ export async function POST(request: Request) {
             },
             body: JSON.stringify({
                 text: text,
-                voice: CLONED_VOICE_ID,  // Using your cloned voice
+                voice: CLONED_VOICE_ID,
                 quality: 'medium',
                 output_format: 'mp3',
                 speed: 1,
@@ -44,7 +42,6 @@ export async function POST(request: Request) {
             throw new Error(`Failed to generate audio: ${errorMessage}`);
         }
 
-        // Get the audio data directly from the stream
         const audioBuffer = await conversionResponse.arrayBuffer();
         const base64Audio = Buffer.from(audioBuffer).toString('base64');
 

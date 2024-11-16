@@ -1,7 +1,16 @@
-// app/PWAProvider.tsx
 'use client';
 
 import { useEffect } from 'react';
+
+declare global {
+    interface Window {
+        workbox: {
+            addEventListener: (event: string, callback: (event: Event) => void) => void;
+            messageSkipWaiting: () => void;
+            register: () => void;
+        }
+    }
+}
 
 export default function PWAProvider() {
     useEffect(() => {
@@ -12,28 +21,25 @@ export default function PWAProvider() {
         ) {
             const wb = window.workbox;
 
-            // Add event listeners to handle PWA lifecycle
-            wb.addEventListener('installed', (event: any) => {
+            wb.addEventListener('installed', (event: Event) => {
                 console.log(`Event ${event.type} is triggered.`);
                 console.log(event);
             });
 
-            wb.addEventListener('controlling', (event: any) => {
+            wb.addEventListener('controlling', (event: Event) => {
                 console.log(`Event ${event.type} is triggered.`);
                 console.log(event);
             });
 
-            wb.addEventListener('activated', (event: any) => {
+            wb.addEventListener('activated', (event: Event) => {
                 console.log(`Event ${event.type} is triggered.`);
                 console.log(event);
             });
 
-            // Send skip waiting
             wb.addEventListener('waiting', () => {
                 wb.messageSkipWaiting();
             });
 
-            // Register the service worker after event listeners are added
             wb.register();
         }
     }, []);
