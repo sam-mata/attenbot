@@ -1,6 +1,8 @@
 // app/layout.tsx
 import { Metadata } from 'next';
 import PWAProvider from '../app/PWAProvider';
+import './globals.css'; // Import global styles
+
 
 export const metadata: Metadata = {
   title: 'AttenBot',
