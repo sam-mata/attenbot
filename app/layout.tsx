@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   themeColor: '#000000',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   icons: {
-    apple: '/icons/icon-192x192.png',
+    apple: '/high-res.png',
   },
 };
 
@@ -24,7 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/high-res.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
       </head>

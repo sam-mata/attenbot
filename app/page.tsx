@@ -7,7 +7,7 @@ export default function Home() {
     <div className="min-h-screen lg:w-1/3 px-8 mx-auto items-center text-center font-body">
       {/* TITLE */}
       <div className="py-12">
-        <div className="lg:text-[9rem] text-[7rem] font-bold pb-6 font-title border-2">
+        <div className="lg:text-[9rem] text-8xl font-bold font-title border-2">
           ATTENBOT
         </div>
         <h2 className="lg:text-2xl text-xl font-subtitle italic py-4">
