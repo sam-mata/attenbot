@@ -4,13 +4,13 @@ import AttenBot from '../app/AttenBot';
 
 export default function Home() {
   return (
-    <div className="min-h-screen w-1/3 mx-auto items-center text-center font-body">
+    <div className="min-h-screen lg:w-1/3 px-8 mx-auto items-center text-center font-body">
       {/* TITLE */}
       <div className="py-12">
-        <div className="text-[9rem] font-bold pb-6 font-title border-2">
+        <div className="lg:text-[9rem] text-[7rem] font-bold pb-6 font-title border-2">
           ATTENBOT
         </div>
-        <h2 className="text-2xl font-subtitle italic py-4">
+        <h2 className="lg:text-2xl text-xl font-subtitle italic py-4">
           A webcam narrator in the style of a certain BBC presenter.
         </h2>
       </div>
@@ -46,7 +46,7 @@ export default function Home() {
       </div>
 
       {/* FOOTER */}
-      <div className="flex space-x-2 text-center bg-foreground w-fit mx-auto mb-20 px-4 text-background font-body font-bold">
+      <div className="flex space-x-2 text-center bg-foreground w-fit mx-auto mb-20 px-2 text-background font-body font-bold">
         <a href="https://sammata.nz/">🤙 Contact</a>
         <p>•</p> 
         <a href="https://github.com/sam-mata/attenbot">📦Project Files</a>

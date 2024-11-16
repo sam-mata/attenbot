@@ -1,3 +1,4 @@
+// components/AttenBot.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -6,8 +7,12 @@ export default function AttenBot() {
     const [status, setStatus] = useState("📸 Enable Webcam");
     const [script, setScript] = useState("No script generated.");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isNarrating, setIsNarrating] = useState(false);
+    const [audioUrl, setAudioUrl] = useState<string | null>(null);
+    const [isLoadingAudio, setIsLoadingAudio] = useState(false);
     const videoRef = useRef(null);
     const streamRef = useRef(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const startWebcam = async () => {
         try {
@@ -35,7 +40,7 @@ export default function AttenBot() {
                 videoRef.current.srcObject = null;
             }
             streamRef.current = null;
-            setStatus("📸 No Webcam");
+            setStatus("📸 Enable Webcam");
         }
     };
 
@@ -59,6 +64,7 @@ export default function AttenBot() {
 
         setIsProcessing(true);
         setStatus("🤔 Analyzing scene...");
+        setAudioUrl(null); // Clear previous audio
 
         try {
             const base64Image = await captureImage();
@@ -91,9 +97,57 @@ export default function AttenBot() {
         }
     };
 
+    const generateNarration = async () => {
+        if (!script || script === "No script generated.") {
+            setStatus("❌ Please generate a script first");
+            return;
+        }
+
+        setIsNarrating(true);
+        setIsLoadingAudio(true);
+        setStatus("🎙️ Generating narration...");
+
+        try {
+            const response = await fetch("/api/generate-audio", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    text: script,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to generate audio");
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            // Use the direct URL from PlayHT if available, otherwise use base64
+            const audioData = data.url || `data:audio/mpeg;base64,${data.audio}`;
+            setAudioUrl(audioData);
+            setStatus("🔊 Narration ready!");
+        } catch (error) {
+            console.error("Error generating audio:", error);
+            setStatus("❌ Error generating narration");
+        } finally {
+            setIsNarrating(false);
+            setIsLoadingAudio(false);
+        }
+    };
+
     useEffect(() => {
         return () => {
             stopWebcam();
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = "";
+            }
         };
     }, []);
 
@@ -106,8 +160,8 @@ export default function AttenBot() {
     };
 
     return (
-        <div className="flex py-12">
-            <div className="w-1/2">
+        <div className="lg:flex py-12">
+            <div className="lg:w-1/2">
                 <video
                     ref={videoRef}
                     id="webcam"
@@ -131,10 +185,26 @@ export default function AttenBot() {
                     >
                         {isProcessing ? "GENERATING..." : "GENERATE SCRIPT"}
                     </button>
+                    <button
+                        className="font-extrabold bg-foreground text-background px-4 my-4 block w-full"
+                        onClick={generateNarration}
+                        disabled={
+                            isNarrating ||
+                            !script ||
+                            script === "No script generated." ||
+                            isLoadingAudio
+                        }
+                    >
+                        {isNarrating
+                            ? "GENERATING VOICE..."
+                            : isLoadingAudio
+                                ? "LOADING AUDIO..."
+                                : "NARRATE SCRIPT"}
+                    </button>
                 </div>
             </div>
 
-            <div className="w-1/2">
+            <div className="lg:w-1/2">
                 <div className="flex">
                     <h2 className="font-extrabold w-2/5">Status:</h2>
                     <h2 className="w-3/5 text-left">{status}</h2>
@@ -142,6 +212,20 @@ export default function AttenBot() {
                 <p className="bg-zinc-800 m-4 text-xs h-48 p-4 overflow-y-auto text-left">
                     {script}
                 </p>
+                {audioUrl && (
+                    <div className="mt-4">
+                        <audio
+                            ref={audioRef}
+                            controls
+                            className="w-full"
+                            src={audioUrl}
+                            onError={(e) => {
+                                console.error("Audio playback error:", e);
+                                setStatus("❌ Error playing audio");
+                            }}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );
