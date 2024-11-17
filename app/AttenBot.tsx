@@ -83,44 +83,55 @@ export default function AttenBot() {
             });
 
             if (!scriptResponse.ok) {
-                throw new Error("Failed to generate script");
+                const error = await scriptResponse.json();
+                throw new Error(error.error || "Failed to generate script");
             }
 
             const scriptData = await scriptResponse.json();
             setScript(scriptData.script);
             setStatus("✨ Generating narration...");
 
-            // Then, generate the narration
-            const audioResponse = await fetch('/api/generate-audio', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    text: scriptData.script,
-                }),
-            });
+            // Then, generate the narration with timeout
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
 
-            if (!audioResponse.ok) {
-                const error = await audioResponse.json();
-                throw new Error(error.error || 'Failed to generate narration');
+            try {
+                const audioResponse = await fetch('/api/generate-audio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: scriptData.script,
+                    }),
+                    signal: controller.signal,
+                });
+
+                if (!audioResponse.ok) {
+                    const error = await audioResponse.json();
+                    throw new Error(error.error || 'Failed to generate narration');
+                }
+
+                const audioData = await audioResponse.json();
+                if (audioData.error) {
+                    throw new Error(audioData.error);
+                }
+
+                const audioDataUrl = `data:audio/mpeg;base64,${audioData.audio}`;
+
+                // Create and play audio immediately
+                const audio = new Audio(audioDataUrl);
+                audio.play().then(() => {
+                    setStatus("🔊 Playing narration...");
+                }).catch((error) => {
+                    console.error('Autoplay failed:', error);
+                    setStatus("🔊 Click play to listen to narration");
+                });
+
+                setAudioUrl(audioDataUrl);
+            } finally {
+                clearTimeout(timeout);
             }
-
-            const audioData = await audioResponse.json();
-            const audioDataUrl = `data:audio/mpeg;base64,${audioData.audio}`;
-
-            // Create and play audio immediately
-            const audio = new Audio(audioDataUrl);
-            audio.play().then(() => {
-                setStatus("🔊 Playing narration...");
-            }).catch((error) => {
-                console.error('Autoplay failed:', error);
-                setStatus("🔊 Click play to listen to narration");
-            });
-
-            // Set the URL for the visible audio control
-            setAudioUrl(audioDataUrl);
-
         } catch (error) {
             console.error("Error:", error);
             setStatus(`❌ ${error instanceof Error ? error.message : 'Error generating content'}`);
@@ -146,38 +157,38 @@ export default function AttenBot() {
     }, []);
 
     return (
-            <div className=" w-3/4 mx-auto">
-                <video
-                    ref={videoRef}
-                    id="webcam"
-                    className="w-full rounded-sm aspect-square bg-zinc-800"
-                    autoPlay
-                    playsInline
-                >
-                    <track kind="captions" label="No captions available" default />
-                </video>
-                <button
-                    className="font-extrabold bg-foreground text-background px-4 py-2 mt-4 w-full"
-                    onClick={generateContent}
-                    disabled={isProcessing || !streamRef.current}
-                >
-                    {isProcessing ? "ATTENBOT IS WORKING..." : "START THE ATTENBOT"}
-                </button>
-                <div className="bg-zinc-800 rounded-sm p-4 my-4">
-                    <p>Status: {status}</p>
-                </div>
-                {audioUrl && (
-                    <div className="mt-4">
-                        <audio
-                            ref={audioRef}
-                            src={audioUrl}
-                            className="w-full"
-                            onPlay={() => setStatus("🔊 Playing narration...")}
-                            onEnded={() => setStatus("✅ Narration complete")}
-                            onError={() => setStatus("❌ Error playing audio")}
-                        />
-                    </div>
-                )}
+        <div className=" w-3/4 mx-auto">
+            <video
+                ref={videoRef}
+                id="webcam"
+                className="w-full rounded-sm aspect-square bg-zinc-800"
+                autoPlay
+                playsInline
+            >
+                <track kind="captions" label="No captions available" default />
+            </video>
+            <button
+                className="font-extrabold bg-foreground text-background px-4 py-2 mt-4 w-full"
+                onClick={generateContent}
+                disabled={isProcessing || !streamRef.current}
+            >
+                {isProcessing ? "ATTENBOT IS WORKING..." : "START THE ATTENBOT"}
+            </button>
+            <div className="bg-zinc-800 rounded-sm p-4 my-4">
+                <p>Status: {status}</p>
             </div>
+            {audioUrl && (
+                <div className="mt-4">
+                    <audio
+                        ref={audioRef}
+                        src={audioUrl}
+                        className="w-full"
+                        onPlay={() => setStatus("🔊 Playing narration...")}
+                        onEnded={() => setStatus("✅ Narration complete")}
+                        onError={() => setStatus("❌ Error playing audio")}
+                    />
+                </div>
+            )}
+        </div>
     );
 }
