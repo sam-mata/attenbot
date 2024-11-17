@@ -21,7 +21,7 @@ export async function POST(request: Request) {
             body: JSON.stringify({
                 text: text,
                 voice: CLONED_VOICE_ID,
-                quality: 'medium',
+                quality: 'high',
                 output_format: 'mp3',
                 speed: 1,
                 sample_rate: 24000

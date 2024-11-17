@@ -146,7 +146,7 @@ export default function AttenBot() {
     }, []);
 
     return (
-            <div>
+            <div className=" w-3/4 mx-auto">
                 <video
                     ref={videoRef}
                     id="webcam"
